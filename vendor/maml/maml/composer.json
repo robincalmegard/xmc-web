@@ -1,0 +1,39 @@
+{
+    "name": "maml/maml",
+    "description": "MAML Parser",
+    "type": "library",
+    "license": "MIT",
+    "keywords": [
+        "maml",
+        "parser",
+        "serializer",
+        "config",
+        "configuration"
+    ],
+    "homepage": "https://maml.dev",
+    "autoload": {
+        "psr-4": {
+            "Maml\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Maml\\Tests\\": "tests/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Anton Medvedev",
+            "email": "anton@medv.io"
+        }
+    ],
+    "require": {
+        "php": ">=8.2",
+        "ext-mbstring": "*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.0 || ^11.0 || ^12.0",
+        "phpstan/phpstan": "^2.1",
+        "php-cs-fixer/shim": "^3.94"
+    }
+}

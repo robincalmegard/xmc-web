@@ -1,0 +1,63 @@
+{
+    "name": "deployer/deployer",
+    "description": "Deployment Tool",
+    "license": "MIT",
+    "homepage": "https://deployer.org",
+    "support": {
+        "docs": "https://deployer.org/docs",
+        "source": "https://github.com/deployphp/deployer",
+        "issues": "https://github.com/deployphp/deployer/issues"
+    },
+    "authors": [
+        {
+            "name": "Anton Medvedev",
+            "email": "anton@medv.io"
+        }
+    ],
+    "funding": [
+        {
+            "type": "github",
+            "url": "https://github.com/sponsors/antonmedv"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Deployer\\": "src/"
+        },
+        "files": [
+            "src/functions.php",
+            "src/Support/helpers.php"
+        ]
+    },
+    "scripts": {
+        "test": "phpunit",
+        "check": "php-cs-fixer check",
+        "fix": "php-cs-fixer fix",
+        "docgen": "php bin/docgen",
+        "phpstan": "phpstan analyse -c phpstan.neon --memory-limit 1G",
+        "phpstan:baseline": "@phpstan --generate-baseline tests/phpstan-baseline.neon"
+    },
+    "bin": [
+        "bin/dep"
+    ],
+    "require": {
+        "php": "^8.3",
+        "maml/maml": "^3.2",
+        "symfony/console": "^7.4.0 || ^8.0.0",
+        "symfony/process": "^7.4.0 || ^8.0.0",
+        "symfony/yaml": "^7.4.0 || ^8.0.0"
+    },
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.68",
+        "phpstan/phpstan": "^2.1",
+        "phpunit/php-code-coverage": "^12.0",
+        "phpunit/phpunit": "^12.5"
+    },
+    "config": {
+        "sort-packages": true,
+        "process-timeout": 0,
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    }
+}

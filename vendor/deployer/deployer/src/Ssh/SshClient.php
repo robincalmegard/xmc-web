@@ -1,0 +1,103 @@
+<?php
+
+declare(strict_types=1);
+
+/* (c) Anton Medvedev <anton@medv.io>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+namespace Deployer\Ssh;
+
+use Deployer\Exception\RunException;
+use Deployer\Exception\TimeoutException;
+use Deployer\Host\Host;
+use Deployer\Logger\Logger;
+use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Process\Exception\ProcessTimedOutException;
+use Symfony\Component\Process\Process;
+
+use function Deployer\Support\env_stringify;
+use function Deployer\Support\replace_secrets;
+
+class SshClient
+{
+    private OutputInterface $output;
+    private Logger $logger;
+
+    public function __construct(OutputInterface $output, Logger $logger)
+    {
+        $this->output = $output;
+        $this->logger = $logger;
+    }
+
+    public function run(Host $host, string $command, RunParams $params): string
+    {
+        $shellId = 'id$' . bin2hex(random_bytes(10));
+        $shellCommand = $host->getShell();
+        if ($host->has('become') && !empty($host->get('become'))) {
+            $shellCommand = "sudo -H -u {$host->get('become')} " . $shellCommand;
+        }
+
+        $ssh = array_merge(['ssh'], $host->connectionOptions(), [$host->connectionString(), ": $shellId; $shellCommand"]);
+
+        // -vvv for ssh command
+        if ($this->output->isDebug()) {
+            $sshString = $ssh[0];
+            for ($i = 1; $i < count($ssh); $i++) {
+                $sshString .= ' ' . \Deployer\quote((string) $ssh[$i]);
+            }
+            $this->output->writeln("[$host] $sshString");
+        }
+
+        if (!empty($params->cwd)) {
+            $command = "cd $params->cwd && ($command)";
+        }
+
+        if (!empty($params->env)) {
+            $env = env_stringify($params->env);
+            $command = "export $env; $command";
+        }
+
+        $this->logger->command($host, 'run', $command);
+
+        $process = new Process($ssh);
+        $process
+            ->setInput(replace_secrets($command, $params->secrets))
+            ->setTimeout($params->timeout)
+            ->setIdleTimeout($params->idleTimeout);
+
+        $callback = function ($type, $buffer) use ($params, $host) {
+            $this->logger->print($host, $buffer, $params->forceOutput);
+        };
+
+        try {
+            $process->run($callback);
+        } catch (ProcessTimedOutException $exception) {
+            // Let's try to kill all processes started by this command.
+            $pid = $this->run($host, "ps x | grep $shellId | grep -v grep | awk '{print \$1}'", $params->with(timeout: 10));
+            // Minus before pid means all processes in this group.
+            $this->run($host, "kill -9 -$pid", $params->with(timeout: 20));
+            throw new TimeoutException(
+                $command,
+                $exception->getExceededTimeout(),
+            );
+        }
+
+        $output = $process->getOutput();
+        $exitCode = $process->getExitCode();
+
+        if ($exitCode !== 0 && !$params->nothrow) {
+            throw new RunException(
+                $host,
+                $command,
+                $exitCode,
+                $output,
+                $process->getErrorOutput(),
+            );
+        }
+
+        return $output;
+    }
+}
